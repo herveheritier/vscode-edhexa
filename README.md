@@ -8,7 +8,7 @@ Extension tool to edit binary EBCDIC and ASCII files
 
 ### available
 
-Open EBCDIC file
+Open EBCDIC file  
 Open ASCII file
 Display character and hexa
 Edit character and hexa
