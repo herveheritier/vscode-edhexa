@@ -1,0 +1,73 @@
+{
+	"name": "ed-hexa",
+	"description": "Ed-Hexa - extension",
+	"version": "0.0.1",
+	"publisher": "herve.heritier",
+	"engines": {
+		"vscode": "^1.50.1"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"onCommand:edhexa.start",
+		"onCommand:edhexa.openEbcdic",
+		"onWebviewPanel:edhexa"
+	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/?????"
+	},
+	"main": "./out/extension.js",
+	"contributes": {
+		"commands": [
+			{
+				"command": "edhexa.start",
+				"title": "Start Ed-Hexa extension",
+				"category": "Edhexa"
+			},
+			{
+				"command": "edhexa.openEbcdic",
+				"title": "Ed-Hexa - Open as EBCDIC file",
+				"category": "Edhexa"
+			}
+		],
+		"menus": {
+			"explorer/context": [
+				{
+					"command": "edhexa.start",
+					"group": "navigation"
+				},
+				{
+					"command": "edhexa.openEbcdic",
+					"group": "navigation"
+				}
+
+			],
+			"editor/context": [
+				{
+					"command": "edhexa.start",
+					"group": "navigation"
+				}
+			]
+
+		}
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -p ./",
+		"lint": "eslint . --ext .ts,.tsx",
+		"watch": "tsc -w -p ./"
+	},
+	"dependencies": {
+		"file-system": "^2.2.2",
+		"fs": "0.0.1-security"
+	},
+	"devDependencies": {
+		"@typescript-eslint/eslint-plugin": "^3.0.2",
+		"@typescript-eslint/parser": "^3.0.2",
+		"eslint": "^7.1.0",
+		"typescript": "^4.0.2",
+		"@types/vscode": "^1.47.0"
+	}
+}

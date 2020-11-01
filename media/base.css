@@ -1,0 +1,40 @@
+.ed,.high,.low,.status {
+    background-color: #222222;
+    color: #DDDDDD;
+    font-family: monospace;
+    font-size: large;
+}   
+.ed {
+    color: #DDD;
+    white-space: pre;
+}         
+.high, .low {
+    color: #AAA;
+    user-select: none;
+}
+.ed, .high, .low, .status {
+    padding-left: 3px;
+    padding-right: 3px;
+}
+.lineNumber {
+    border-right: 2px solid #555;
+    padding-right: 3px;
+    margin-right: 3px;
+}
+.visibleElement {
+    display: none;
+}
+#split, #charset, #saveFile, #newLine {
+    width: 12em;
+}
+#mainMenu {
+    position: fixed;
+    top: 0px;
+    background-color: #222;
+    width: 100%;
+    padding: 0px;
+    margin: 0px;
+}
+#mainContent {
+    margin-top: 7em;
+}

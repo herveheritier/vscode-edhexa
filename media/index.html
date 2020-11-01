@@ -1,0 +1,49 @@
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+
+		<!--
+			Use a content security policy to only allow loading images from https or from our extension directory,
+			and only allow scripts that have a specific nonce.
+		-->
+		<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; img-src ${webview.cspSource} https:; script-src 'nonce-${nonce}';">
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		<link href="${stylesResetUri}" rel="stylesheet">
+		<link href="${stylesMainUri}" rel="stylesheet">
+		<link href="${stylesBaseUri}" rel="stylesheet">
+
+		<link href="./style/base.css" rel="stylesheet">
+		<script nonce="${nonce}" src="${scriptEatUri}"></script>
+		<script nonce="${nonce}" src="${scriptBaseUri}"></script>
+		<script nonce="${nonce}" src="${scriptUtilsUri}"></script>
+
+
+		<title>Ed Hexa</title>
+	</head>
+	<body>
+		<div id="mainMenu">
+			<button id="split">toggle hex mode</button>
+			<button id="charset">ASCII</button>
+			<button id="saveFile">Sauver</button>
+			<button id="newLine">Nouvelle ligne</button>
+			<input id="openFile" type="file" style="display:block"/>
+		</div>
+		<div id="mainContent">
+		</div>
+		<template id="line">
+			<div class="aline" style="display:flex;">
+				<div class="lineNumber">00000</div>
+				<div>
+					<div class="ed" contenteditable="true"></div>
+					<div class="high" contenteditable="true"></div>
+					<div class="low" contenteditable="true"></div>
+					<div class="status"></div>
+				</div>
+			</div>
+		</template>
+
+		<script nonce="${nonce}" src="${scriptUri}"></script>
+	</body>
+</html>
