@@ -10,7 +10,7 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:edhexa.start",
+		"onCommand:edhexa.openAscii",
 		"onCommand:edhexa.openEbcdic",
 		"onWebviewPanel:edhexa"
 	],
@@ -22,8 +22,8 @@
 	"contributes": {
 		"commands": [
 			{
-				"command": "edhexa.start",
-				"title": "Start Ed-Hexa extension",
+				"command": "edhexa.openAscii",
+				"title": "Ed-Hexa - Open as ASCII file",
 				"category": "Edhexa"
 			},
 			{
@@ -35,22 +35,14 @@
 		"menus": {
 			"explorer/context": [
 				{
-					"command": "edhexa.start",
-					"group": "navigation"
+					"command": "edhexa.openAscii",
+					"group": "edhexa"
 				},
 				{
 					"command": "edhexa.openEbcdic",
-					"group": "navigation"
-				}
-
-			],
-			"editor/context": [
-				{
-					"command": "edhexa.start",
-					"group": "navigation"
+					"group": "edhexa"
 				}
 			]
-
 		}
 	},
 	"scripts": {

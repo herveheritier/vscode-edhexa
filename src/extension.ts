@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 
 export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
-		vscode.commands.registerCommand('edhexa.start', (uri:vscode.Uri) => {
+		vscode.commands.registerCommand('edhexa.openAscii', (uri:vscode.Uri) => {
 			EdHexaPanel.createOrShow(context.extensionUri,uri,'ASCII');
 		})
 	);
@@ -14,17 +14,6 @@ export function activate(context: vscode.ExtensionContext) {
 		})
 	);
 
-	/*
-	if (vscode.window.registerWebviewPanelSerializer) {
-		// Make sure we register a serializer in activation event
-		vscode.window.registerWebviewPanelSerializer(EdHexaPanel.viewType, {
-			async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: any) {
-				//console.log(`Got state: ${state}`);
-				EdHexaPanel.revive(webviewPanel, context.extensionUri);
-			}
-		});
-	}
-	*/
 }
 
 /**
@@ -94,19 +83,6 @@ class EdHexaPanel {
 		// This happens when the user closes the panel or when the panel is closed programatically
 		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
-		/*
-		// Update the content based on view changes
-		this._panel.onDidChangeViewState(
-			e => {
-				if (this._panel.visible) {
-					this._panel.webview.html = this._getHtmlForWebview(webview)
-				}
-			},
-			null,
-			this._disposables
-		);
-		*/
-
 		// Handle messages from the webview
 		this._panel.webview.onDidReceiveMessage(
 			message => {
@@ -120,7 +96,13 @@ class EdHexaPanel {
 					case 'save':
 						// eslint-disable-next-line no-case-declarations
 						const res = Array.from(message.content).map((e:any)=>{ return e.charCodeAt(0) })
-						vscode.window.showInformationMessage(message.content)
+						vscode.workspace.fs.writeFile(this._fileUri,Uint8Array.from(res)).then(()=>{
+							vscode.window.showInformationMessage('le fichier a été enregistré')
+						},(error:any)=>{
+							vscode.window.showErrorMessage('enregistrement en échec')
+							// eslint-disable-next-line no-debugger
+							debugger
+						})
 				}
 			},
 			null,

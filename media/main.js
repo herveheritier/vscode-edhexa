@@ -27,6 +27,7 @@
     }    
 
     // Handle messages sent from the extension to the webview
+
     window.addEventListener('message', event => {
         let message = event.data
         console.log(message.command)
@@ -38,8 +39,6 @@
         document.querySelector('#charset').innerText = charsetMode
         load(message.content.data,message.mode)
     })
-
-    vscode.postMessage({ command:'info', text: 'I\'m in !' })
 
     refresh = (ed,hi,lo,status) => {
         let decoded = textToCharset(ed.innerText,hi.innerText,lo.innerText)
@@ -84,15 +83,6 @@
         div.style.color='#F99'
 
         return code
-
-    }
-
-    ins = (div,anc,char) => {
-
-        let len = div.innerText.length
-        let deb = div.innerText.substring(0,anc-1)
-        let fin = div.innerText.substring(anc-1,len)
-        div.innerText=deb.concat(char).concat(fin)
 
     }
 
@@ -221,7 +211,7 @@
     //
 
 
-    document.addEventListener('click', e => {
+    document.addEventListener('click', event => {
         let node = event && event.target;
         while (node) {
             if (node.id && node.id === 'charset') {
@@ -235,7 +225,7 @@
                 let i = charsets.findIndex((e)=>e==charsetMode)
                 i = (i+1) % charsets.length
                 charsetMode = charsets[i]
-                e.target.innerText = charsetMode
+                event.target.innerText = charsetMode
                 // update display
                 let all = document.querySelectorAll('.ed')
                 let len = all.length
@@ -271,56 +261,6 @@
         lineNumber = 0
     }
 
-
-    loadBinaryBuffer = () => {
-        var o = document.querySelector('#openFile');
-        o.multiple = "";
-        o.value = null;
-        o.onchange = (e) => {
-            var file = e.target.files[0];
-            getExternalFile(
-                file,
-                function(fileName) {
-                    return function(content) {
-                        deleteAllLines()
-                        let inta = new Uint8Array(content)
-                        let d=0, inc=48
-                        let extract
-                        do {
-                            extract = inta.subarray(d,d+inc)
-                            if(extract.length>0) {
-                                let hexa = Array.from(extract).map(e=>"0123456789ABCDEF".charAt((e/16)>>0)+"0123456789ABCDEF".charAt(e%16))
-                                let a = hexa.reduce((a,v)=>{ a[0]+=v.substring(0,1); a[1]+=v.substring(1,2); return a },["",""])
-                                let nl = newLine()
-                                nl.hi.innerText=a[0]
-                                nl.lo.innerText=a[1]
-                                let ct = charsetToText(a[0],a[1])
-                                nl.ed.innerText = ct[0]
-                                nl.status.innerText = ct[1]
-                                d+=inc
-                            }
-                        } while(extract.length>0)
-                    }
-                }(file.name)
-            )
-        }
-    }
-
-    document.addEventListener('click', event => {
-        let node = event && event.target;
-        while (node) {
-            if (node.id && node.id === 'openFile') {
-                // Handle click here by posting data back to VS Code
-                // for your extension to handle
-                event.preventDefault();
-                vscode.postMessage({ command:'info', text: 'click on openFile' })
-                loadBinaryBuffer()
-                return;
-            }
-            node = node.parentNode;
-        }
-    }, true);
-
     extractBinaryBuffer = () => {
         let codes = []
         let all = document.querySelectorAll('.ed')
@@ -338,15 +278,6 @@
        return new Uint8Array(codes)
     }
 
-    doSave = () => {
-        //let buf = Array.from(all).map(e => e.innerText)
-        let buf = extractBinaryBuffer()
-        var a = document.createElement("a")
-        var blob = new Blob([buf], {"type":"binary"});
-        a.href = window.URL.createObjectURL(blob);
-        a.download = "save.txt";
-        a.click();
-    }
 
     document.addEventListener('click', event => {
         let node = event && event.target;
@@ -364,12 +295,6 @@
         }
     }, true);    
 
-    // création de 10 lignes
-
-    vscode.postMessage({ command:'info', text: eatCalled() })
-    vscode.postMessage({ command:'info', text: baseCalled() })
-    vscode.postMessage({ command:'info', text: utilsCalled() })
-
     document.addEventListener('click', event => {
         let node = event && event.target;
         while (node) {
@@ -377,7 +302,6 @@
                 // Handle click here by posting data back to VS Code
                 // for your extension to handle
                 event.preventDefault();
-                vscode.postMessage({ command:'info', text: 'click on newLine' })
                 newLine()
                 return;
             }

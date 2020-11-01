@@ -4,23 +4,12 @@ exports.activate = void 0;
 /* eslint-disable semi */
 const vscode = require("vscode");
 function activate(context) {
-    context.subscriptions.push(vscode.commands.registerCommand('edhexa.start', (uri) => {
+    context.subscriptions.push(vscode.commands.registerCommand('edhexa.openAscii', (uri) => {
         EdHexaPanel.createOrShow(context.extensionUri, uri, 'ASCII');
     }));
     context.subscriptions.push(vscode.commands.registerCommand('edhexa.openEbcdic', (uri) => {
         EdHexaPanel.createOrShow(context.extensionUri, uri, 'EBCDIC');
     }));
-    /*
-    if (vscode.window.registerWebviewPanelSerializer) {
-        // Make sure we register a serializer in activation event
-        vscode.window.registerWebviewPanelSerializer(EdHexaPanel.viewType, {
-            async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: any) {
-                //console.log(`Got state: ${state}`);
-                EdHexaPanel.revive(webviewPanel, context.extensionUri);
-            }
-        });
-    }
-    */
 }
 exports.activate = activate;
 /**
@@ -44,18 +33,6 @@ class EdHexaPanel {
         // Listen for when the panel is disposed
         // This happens when the user closes the panel or when the panel is closed programatically
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
-        /*
-        // Update the content based on view changes
-        this._panel.onDidChangeViewState(
-            e => {
-                if (this._panel.visible) {
-                    this._panel.webview.html = this._getHtmlForWebview(webview)
-                }
-            },
-            null,
-            this._disposables
-        );
-        */
         // Handle messages from the webview
         this._panel.webview.onDidReceiveMessage(message => {
             switch (message.command) {
@@ -68,7 +45,13 @@ class EdHexaPanel {
                 case 'save':
                     // eslint-disable-next-line no-case-declarations
                     const res = Array.from(message.content).map((e) => { return e.charCodeAt(0); });
-                    vscode.window.showInformationMessage(message.content);
+                    vscode.workspace.fs.writeFile(this._fileUri, Uint8Array.from(res)).then(() => {
+                        vscode.window.showInformationMessage('le fichier a été enregistré');
+                    }, (error) => {
+                        vscode.window.showErrorMessage('enregistrement en échec');
+                        // eslint-disable-next-line no-debugger
+                        debugger;
+                    });
             }
         }, null, this._disposables);
         //
