@@ -192,11 +192,20 @@ class EdHexaPanel {
 			</head>
 			<body>
 				<div id="mainMenu">
-					<button id="split">toggle hex mode</button>
+					<button id="split">Toggle Hex Mode</button>
 					<button id="charset">ASCII</button>
-					<button id="saveFile">Sauver</button>
-					<button id="newLine">Nouvelle ligne</button>
-					<input id="openFile" type="file" style="display:block"/>
+					<button id="saveFile">Save</button>
+					<button id="newLine">New line</button>
+					<select id="format" name="format">
+						<option value="F">F</option>
+						<option value="FB" selected>FB</option>
+						<option value="V">V</option>
+						<option value="VB">VB</option>
+						<option value="CR">CR</option>
+						<option value="LF">LF</option>
+						<option value="CL">CR/LF</option>
+					</select>
+					<input id="length" type="number" min="1" max="32760" value="80" /> 
 				</div>
 				<div id="mainContent">
 				</div>

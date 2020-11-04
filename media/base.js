@@ -1,6 +1,9 @@
 /* eslint-disable no-undef */
 /* eslint-disable semi */
 
+var displays = ['HEXA','CHAR']
+var displayMode = displays[0]
+
 baseCalled = () => { return "base a été appelé"}
 
 var charsets = ["ASCII","EBCDIC"]

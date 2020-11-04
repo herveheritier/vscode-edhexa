@@ -21,11 +21,19 @@
     padding-right: 3px;
     margin-right: 3px;
 }
-.visibleElement {
+.hideElement {
     display: none;
 }
 #split, #charset, #saveFile, #newLine {
     width: 12em;
+}
+#format {
+    display: inline-block;
+    width: 5em;
+}
+#length {
+    display: inline-block;
+    width: 5em;
 }
 #mainMenu {
     position: fixed;
@@ -36,5 +44,5 @@
     margin: 0px;
 }
 #mainContent {
-    margin-top: 7em;
+    margin-top: 3em;
 }
