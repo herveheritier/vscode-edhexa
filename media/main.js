@@ -190,37 +190,22 @@ newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") =>
 
 }
 
-
-document.addEventListener('click', event => {
-    let node = event && event.target;
-    while (node) {
-        if (node.id && node.id === 'charset') {
-            // Handle click here by posting data back to VS Code
-            // for your extension to handle
-            event.preventDefault();
-
-            vscode.postMessage({ command:'info', text: 'click on charset' })
-
-            // toogle charset
-            let i = charsets.findIndex((e)=>e==charsetMode)
-            i = (i+1) % charsets.length
-            charsetMode = charsets[i]
-            event.target.innerText = charsetMode
-            // update display
-            let all = document.querySelectorAll('.ed')
-            let len = all.length
-            for(let e=0;e<len;e++) {
-                let ed = all[e]
-                let hi = ed.nextElementSibling
-                let lo = hi.nextElementSibling
-                refresh(ed,hi,lo,status)            
-            }
-
-            return;
-        }
-        node = node.parentNode;
+document.querySelector('#charset').onclick = (e) => {
+    // toogle charset
+    let i = charsets.findIndex((e)=>e==charsetMode)
+    i = (i+1) % charsets.length
+    charsetMode = charsets[i]
+    e.target.innerText = charsetMode
+    // update display
+    let all = document.querySelectorAll('.ed')
+    let len = all.length
+    for(let e=0;e<len;e++) {
+        let ed = all[e]
+        let hi = ed.nextElementSibling
+        let lo = hi.nextElementSibling
+        refresh(ed,hi,lo,status)            
     }
-}, true);
+}
 
 /****************************************************
  *                       MAIN                       *
@@ -258,61 +243,24 @@ extractBinaryBuffer = () => {
     return new Uint8Array(codes)
 }
 
+document.querySelector('#saveFile').onclick = (e) => {
+    vscode.postMessage({ command:'save', content: String.fromCharCode.apply(null,extractBinaryBuffer())})   
+}
 
-document.addEventListener('click', event => {
-    let node = event && event.target;
-    while (node) {
-        if (node.id && node.id === 'saveFile') {
-            // Handle click here by posting data back to VS Code
-            // for your extension to handle
-            event.preventDefault();
-            vscode.postMessage({ command:'info', text: 'click on saveFile' })
-            vscode.postMessage({ command:'save', content: String.fromCharCode.apply(null,extractBinaryBuffer())})
-            //doSave()
-            return;
-        }
-        node = node.parentNode;
-    }
-}, true);    
-
-document.addEventListener('click', event => {
-    let node = event && event.target;
-    while (node) {
-        if (node.id && node.id === 'newLine') {
-            // Handle click here by posting data back to VS Code
-            // for your extension to handle
-            event.preventDefault();
-            newLine()
-            return;
-        }
-        node = node.parentNode;
-    }
-}, true)
-
-
-//
+document.querySelector('#newLine').onclick = (e) => {
+    newLine()
+}
 
 doDisplayMode = (div) => {
     ([  ()=>div.classList.remove('hideElement'),
         ()=>div.classList.add('hideElement')   ][displays.findIndex((e)=>e==displayMode)])()
 }
 
-//
-
-document.addEventListener('click', event => {
-    let node = event && event.target;
-    while (node) {
-        if (node.id && node.id === 'split') {
-            // toogle display mode
-            let i = displays.findIndex((e)=>e==displayMode)
-            i = (i+1) % displays.length
-            displayMode = displays[i]
-            //
-            document.querySelectorAll(".high,.low,.status").forEach((div) => doDisplayMode(div) )
-            event.preventDefault();
-            return;
-        }
-        node = node.parentNode;
-    }
-}, true);
-
+document.querySelector('#split').onclick = (e) => {
+    // toogle display mode
+    let i = displays.findIndex((e)=>e==displayMode)
+    i = (i+1) % displays.length
+    displayMode = displays[i]
+    //
+    document.querySelectorAll(".high,.low,.status").forEach((div) => doDisplayMode(div) )
+}
