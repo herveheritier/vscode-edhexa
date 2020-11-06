@@ -24,7 +24,7 @@
 .hideElement {
     display: none;
 }
-#split, #charset, #saveFile, #newLine {
+#split, #charset, #saveFile, #newLine, #charmode {
     width: 12em;
 }
 #format {
@@ -42,7 +42,26 @@
     width: 100%;
     padding: 0px;
     margin: 0px;
+    height: 1em;
+}
+#mainMenu::before {
+    content: '...'
+}
+#mainMenu * {
+    display: none;
+}
+#mainMenu:hover {
+    height:fit-content;
+}
+#mainMenu:hover::before {
+    content: '';
+}
+#mainMenu:hover * {
+    display: inline;
 }
 #mainContent {
-    margin-top: 3em;
+    margin-top: 2em;
+}
+.hideStatus {
+    display: none !important;
 }

@@ -112,6 +112,8 @@ newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") =>
 
     line.querySelectorAll(".high,.low,.status").forEach((div) => doDisplayMode(div) )
 
+    doCharMode(status)
+
     ed.innerText = lineContent
     refresh(ed,hi,lo,status)
 
@@ -263,4 +265,32 @@ document.querySelector('#split').onclick = (e) => {
     displayMode = displays[i]
     //
     document.querySelectorAll(".high,.low,.status").forEach((div) => doDisplayMode(div) )
+}
+
+document.querySelector('#length').onchange = (e) => {
+    load(extractBinaryBuffer()) 
+}
+
+
+doCharMode = (div) => {
+    if(charMode=='BINARY' || charMode=='CHARSET') {
+        div.classList.add('hideStatus')
+    } else if(charMode=='MIXTE') {
+        div.classList.remove('hideStatus')
+    }
+}
+
+doCharModeAll = () => {
+    document.querySelectorAll(".status").forEach((div)=> doCharMode(div))
+}
+
+document.querySelector('#charmode').innerText = charMode
+
+document.querySelector('#charmode').onclick = (e) => {
+    let i = charModes.findIndex((e)=>e==charMode)
+    i=(i+1)%charModes.length
+    charMode=charModes[i]
+    e.target.innerText = charMode
+    //
+    doCharModeAll()
 }

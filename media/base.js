@@ -9,6 +9,9 @@ baseCalled = () => { return "base a été appelé"}
 var charsets = ["ASCII","EBCDIC"]
 var charsetMode = charsets[0]
 
+var charModes = ['BINARY','CHARSET','MIXTE']
+var charMode = charModes[0]
+
 
 textToAscii = (text,hi,lo) => {
     let l = text.length

@@ -143,6 +143,7 @@ class EdHexaPanel {
 			</head>
 			<body>
 				<div id="mainMenu">
+					<button id="charmode">Binary Mode</button>
 					<button id="split">Toggle Hex Mode</button>
 					<button id="charset">ASCII</button>
 					<button id="saveFile">Save</button>
