@@ -3,12 +3,14 @@
 
 const vscode = acquireVsCodeApi()
 
-load = (inta) => {
+load = (buffer,size) => {
     deleteAllLines()
     let d=0, inc=parseInt(document.querySelector('#length').value)
     let extract
     do {
-        extract = inta.slice(d,d+inc)
+        let f=d+inc
+        f = f>size ? size : f
+        extract = buffer.slice(d,f)
         if(extract.length>0) {
             let hexa = Array.from(extract).map(e=>"0123456789ABCDEF".charAt((e/16)>>0)+"0123456789ABCDEF".charAt(e%16))
             let a = hexa.reduce((a,v)=>{ a[0]+=v.substring(0,1); a[1]+=v.substring(1,2); return a },["",""])
@@ -20,6 +22,7 @@ load = (inta) => {
             nl.status.innerText = ct[1]
             d+=inc
         }
+        offset+=extract.length
     } while(extract.length>0)
 }    
 
@@ -34,7 +37,7 @@ window.addEventListener('message', event => {
         charsetMode = charsets[0]
     }
     document.querySelector('#charset').innerText = charsetMode
-    load(message.content.data,message.mode)
+    load(message.content.data,message.content.size)
 })
 
 refresh = (ed,hi,lo,status) => {
@@ -134,7 +137,7 @@ newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") =>
         focused = lo
     }
 
-    hi.addEventListener("input",e => {
+    hi.oninput = (e) => {
         let decoded = textToCharset(ed.innerText,hi.innerText,lo.innerText)
         let res = meca(e.target,e,decoded[0],lastCursorPosition)
         if(res>-1) {
@@ -143,7 +146,7 @@ newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") =>
             status.innerText = cs[1]
             setCursorPosition(lo,document.getSelection().anchorOffset-1)
         }
-    },false)
+    }
 
     hi.onfocus = (e) => {
         hi.style.color='#7B7'
@@ -157,7 +160,21 @@ newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") =>
         focused = undefined
     }
 
-    lo.addEventListener("input",e => {
+    hi.onkeydown = (e) => {
+        if(e.key=='ArrowDown') {
+            e.stopPropagation()
+            setCursorPosition(lo,lastCursorPosition)
+        }
+        /*
+        let action = ['ArrowLeft','ArrowRight'].findIndex(a=>a==e.key)
+        if(action!==-1) {
+            ([()=>lastCursorPosition--,()=>lastCursorPosition++][action])()
+            console.log(lastCursorPosition)
+        }
+        */
+    }
+
+    lo.oninput = (e) => {
         let decoded = textToCharset(ed.innerText,hi.innerText,lo.innerText)
         let res = meca(e.target,e,decoded[1],lastCursorPosition)
         if(res>-1) {
@@ -166,7 +183,7 @@ newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") =>
             status.innerText = cs[1]
             setCursorPosition(hi,document.getSelection().anchorOffset)
         }
-    },false)
+    }
 
     lo.onfocus = (e) => {
         lo.style.color='#7B7'
@@ -178,14 +195,6 @@ newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") =>
         lo.style.color='#AAA'
         lastCursorPosition = document.getSelection().anchorOffset
         focused = undefined
-    }
-
-    hi.onkeydown = (e) => {
-        let action = ['ArrowLeft','ArrowRight'].findIndex(a=>a==e.key)
-        if(action!==-1) {
-            ([()=>lastCursorPosition--,()=>lastCursorPosition++][action])()
-            console.log(lastCursorPosition)
-        }
     }
 
     return {ed:ed,hi:hi,lo:lo,status}
@@ -208,12 +217,6 @@ document.querySelector('#charset').onclick = (e) => {
         refresh(ed,hi,lo,status)            
     }
 }
-
-/****************************************************
- *                       MAIN                       *
- ****************************************************/
-
-var lineNumber = 0
 
 incrementLineNumber = () => {
     lineNumber++
@@ -284,8 +287,6 @@ doCharModeAll = () => {
     document.querySelectorAll(".status").forEach((div)=> doCharMode(div))
 }
 
-document.querySelector('#charmode').innerText = charMode
-
 document.querySelector('#charmode').onclick = (e) => {
     let i = charModes.findIndex((e)=>e==charMode)
     i=(i+1)%charModes.length
@@ -294,3 +295,21 @@ document.querySelector('#charmode').onclick = (e) => {
     //
     doCharModeAll()
 }
+
+readBuffer = () => {
+    vscode.postMessage({ command:'readBuffer', content: { position:offset } } )  
+}
+
+document.querySelector('#next').onclick = (e) => {
+    readBuffer()    
+}
+
+/****************************************************
+ *                       MAIN                       *
+ ****************************************************/
+
+var lineNumber = 0
+var offset = 0
+
+document.querySelector('#charmode').innerText = charMode
+

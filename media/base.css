@@ -24,8 +24,11 @@
 .hideElement {
     display: none;
 }
-#split, #charset, #saveFile, #newLine, #charmode {
+.basicButton {
     width: 12em;
+}
+.miniButton {
+    width: 6em;
 }
 #format {
     display: inline-block;

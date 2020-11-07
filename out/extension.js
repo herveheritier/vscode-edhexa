@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.activate = void 0;
 /* eslint-disable semi */
 const vscode = require("vscode");
+const fs = require("fs"); // pour que cet import fonctionne, il a fallut d'abord passer la commande > npm install --save-dev @types/node
 function activate(context) {
     context.subscriptions.push(vscode.commands.registerCommand('edhexa.openAscii', (uri) => {
         EdHexaPanel.createOrShow(context.extensionUri, uri, 'ASCII');
@@ -23,11 +24,14 @@ class EdHexaPanel {
     */
     constructor(panel, extensionUri, fileUri, mode) {
         this._disposables = [];
+        this._bufferSize = 1024; //32760
+        this._buffer = new Uint8Array(this._bufferSize);
         this._panel = panel;
         this._extensionUri = extensionUri;
         this._fileUri = fileUri;
         this._mode = mode || '';
         const webview = this._panel.webview;
+        this._fd = fs.openSync(this._fileUri.fsPath, 'r');
         // Set the webview's initial html content
         this._panel.webview.html = this._getHtmlForWebview(webview);
         // Listen for when the panel is disposed
@@ -52,16 +56,23 @@ class EdHexaPanel {
                         // eslint-disable-next-line no-debugger
                         debugger;
                     });
+                    return;
+                case 'readBuffer':
+                    this.read(message.content.position);
+                /*fs.readSync(fd,buf,0,bufferSize,message.content.position)
+                this._panel.webview.postMessage({ command:'load',content:{ data:Array.from(buf) }, mode:this._mode})*/
             }
         }, null, this._disposables);
-        //
-        //this._panel.webview.postMessage({ command: 'refactor', content: 'ready?' });
-        vscode.workspace.fs.readFile(this._fileUri).then((thenable) => {
-            this._panel.webview.postMessage({ command: 'load', content: thenable, mode: this._mode });
-        }, (error) => {
+        /*
+
+        vscode.workspace.fs.readFile(this._fileUri).then((thenable:Uint8Array)=>{
+            this._panel.webview.postMessage({ command:'load',content:thenable, mode:this._mode})
+        },(error:any)=>{
             // eslint-disable-next-line no-debugger
-            debugger;
-        });
+            debugger
+        })
+
+        */
         //
     }
     static createOrShow(extensionUri, fileUri, mode) {
@@ -82,6 +93,11 @@ class EdHexaPanel {
             retainContextWhenHidden: true
         });
         EdHexaPanel.currentPanel = new EdHexaPanel(panel, extensionUri, fileUri, mode);
+    }
+    read(offset) {
+        fs.read(this._fd, this._buffer, 0, this._bufferSize, offset, (err, bytesRead, buffer) => {
+            this._panel.webview.postMessage({ command: 'load', content: { data: Array.from(buffer), size: bytesRead }, mode: this._mode });
+        });
     }
     dispose() {
         EdHexaPanel.currentPanel = undefined;
@@ -143,11 +159,11 @@ class EdHexaPanel {
 			</head>
 			<body>
 				<div id="mainMenu">
-					<button id="charmode">Binary Mode</button>
-					<button id="split">Toggle Hex Mode</button>
-					<button id="charset">ASCII</button>
-					<button id="saveFile">Save</button>
-					<button id="newLine">New line</button>
+					<button id="charmode" class="basicButton">Binary Mode</button>
+					<button id="split" class="basicButton">Toggle Hex Mode</button>
+					<button id="charset" class="basicButton">ASCII</button>
+					<button id="saveFile" class="basicButton">Save</button>
+					<button id="newLine" class="basicButton">New line</button>
 					<select id="format" name="format">
 						<option value="F">F</option>
 						<option value="FB" selected>FB</option>
@@ -157,7 +173,9 @@ class EdHexaPanel {
 						<option value="LF">LF</option>
 						<option value="CL">CR/LF</option>
 					</select>
-					<input id="length" type="number" min="1" max="32760" value="80" /> 
+					<input id="length" type="number" min="1" max="32760" value="80" /><br/>
+					<button id="prev" class="miniButton">prev</button>
+					<button id="next" class="miniButton">next</button>
 				</div>
 				<div id="mainContent">
 				</div>
