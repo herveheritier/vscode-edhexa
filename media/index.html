@@ -14,7 +14,6 @@
 				<link href="${stylesMainUri}" rel="stylesheet">
 				<link href="${stylesBaseUri}" rel="stylesheet">
 
-				<link href="./style/base.css" rel="stylesheet">
 				<script nonce="${nonce}" src="${scriptEatUri}"></script>
 				<script nonce="${nonce}" src="${scriptBaseUri}"></script>
 				<script nonce="${nonce}" src="${scriptUtilsUri}"></script>
@@ -24,11 +23,11 @@
 			</head>
 			<body>
 				<div id="mainMenu">
-					<button id="charmode">Binary Mode</button>
-					<button id="split">Toggle Hex Mode</button>
-					<button id="charset">ASCII</button>
-					<button id="saveFile">Save</button>
-					<button id="newLine">New line</button>
+					<button id="charmode" class="basicButton">Binary Mode</button>
+					<button id="split" class="basicButton">Toggle Hex Mode</button>
+					<button id="charset" class="basicButton">ASCII</button>
+					<button id="saveFile" class="basicButton">Save</button>
+					<button id="newLine" class="basicButton">New line</button>
 					<select id="format" name="format">
 						<option value="F">F</option>
 						<option value="FB" selected>FB</option>
@@ -38,7 +37,9 @@
 						<option value="LF">LF</option>
 						<option value="CL">CR/LF</option>
 					</select>
-					<input id="length" type="number" min="1" max="32760" value="80" /> 
+					<input id="length" type="number" min="1" max="32760" value="80" /><br/>
+					<button id="prev" class="miniButton">prev</button>
+					<button id="next" class="miniButton">next</button>
 				</div>
 				<div id="mainContent">
 				</div>

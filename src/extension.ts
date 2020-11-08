@@ -240,11 +240,11 @@ class EdHexaPanel {
 				<template id="line">
 					<div class="aline" style="display:flex;">
 						<div class="lineNumber">00000</div>
-						<div>
-							<div class="ed" contenteditable="true"></div>
-							<div class="high" contenteditable="true"></div>
-							<div class="low" contenteditable="true"></div>
-							<div class="status"></div>
+						<div class="lineBody">
+							<input class="ed"></input>
+							<input class="high"></input>
+							<input class="low"></input>
+							<input class="status"></input>
 						</div>
 					</div>
 				</template>

@@ -15,11 +15,11 @@ load = (buffer,size) => {
             let hexa = Array.from(extract).map(e=>"0123456789ABCDEF".charAt((e/16)>>0)+"0123456789ABCDEF".charAt(e%16))
             let a = hexa.reduce((a,v)=>{ a[0]+=v.substring(0,1); a[1]+=v.substring(1,2); return a },["",""])
             let nl = newLine()
-            nl.hi.innerText=a[0]
-            nl.lo.innerText=a[1]
+            nl.hi.value=a[0]
+            nl.lo.value=a[1]
             let ct = charsetToText(a[0],a[1])
-            nl.ed.innerText = ct[0]
-            nl.status.innerText = ct[1]
+            nl.ed.value = ct[0]
+            nl.status.value = ct[1]
             d+=inc
         }
         offset+=extract.length
@@ -41,49 +41,10 @@ window.addEventListener('message', event => {
 })
 
 refresh = (ed,hi,lo,status) => {
-    let decoded = textToCharset(ed.innerText,hi.innerText,lo.innerText)
-    hi.innerText = decoded[0]
-    lo.innerText = decoded[1]
-    status.innerText = decoded[2]
-}
-
-meca = (div,event,textBefore,cp) => {
-
-    let code = -1
-
-    if(event.inputType=="insertText") code = "0123456789ABCDEF".indexOf(event.data.toUpperCase())
-    
-    let ele = event.target
-    let rng = document.createRange()
-    let sel = document.getSelection()
-    let anc = sel.anchorOffset
-
-    let long = textBefore.length
-
-    if(anc>long) code=-1
-
-    let len = div.innerText.length
-    let deb = div.innerText.substring(0,anc-1)
-    let fin = len<=long ? div.innerText.substring(anc-1,len) : div.innerText.substring(anc,len)
-
-    if(code==-1) {
-        div.innerText=textBefore
-        if(event.inputType=="insertParagraph") rng.setStart(ele.childNodes[0],cp)
-        else rng.setStart(ele.childNodes[0],anc-1)
-    } else {
-        div.innerText=deb.concat(event.data.toUpperCase()).concat(fin.substring(1))
-        rng.setStart(ele.childNodes[0],anc)
-    }
-
-    rng.collapse(true)
-    sel.removeAllRanges()
-    sel.addRange(rng)
-    ele.focus()
-
-    div.style.color='#F99'
-
-    return code
-
+    let decoded = textToCharset(ed.value,hi.value,lo.value)
+    hi.value = decoded[0]
+    lo.value = decoded[1]
+    status.value = decoded[2]
 }
 
 addline = (number) => {
@@ -91,15 +52,6 @@ addline = (number) => {
     c.querySelector('.lineNumber').innerText=("00000"+number).slice(-5)
     document.querySelector('#mainContent').appendChild(c)
     return document.querySelectorAll('.aline')[document.querySelectorAll('.aline').length-1]
-}
-
-setCursorPosition = (element,pos) => {
-    let rng = document.createRange()
-    rng.setStart(element.childNodes[0],pos)
-    rng.collapse(true)
-    let sel = document.getSelection()
-    sel.removeAllRanges()
-    sel.addRange(rng)
 }
 
 newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") => {          
@@ -117,7 +69,7 @@ newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") =>
 
     doCharMode(status)
 
-    ed.innerText = lineContent
+    ed.value = lineContent
     refresh(ed,hi,lo,status)
 
     ed.oninput = (e) => {
@@ -127,7 +79,6 @@ newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") =>
 
     ed.onfocus = (e) => { 
         ed.style.color='#9F9'
-        setCursorPosition(ed,lastCursorPosition)
         focused = ed
     }
 
@@ -137,20 +88,41 @@ newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") =>
         focused = lo
     }
 
+    ed.onkeydown = (e) => {
+        let cp = getCaretPosition(ed)
+        if(e.key=='ArrowDown') {
+            window.setTimeout(()=>{
+                hi.focus()
+                hi.setSelectionRange(cp,cp)
+            },0)
+        }
+        if(e.key=='ArrowUp') {
+            let prevLo = ed.parentElement.parentElement.previousElementSibling.querySelector('.low')
+            window.setTimeout(()=>{
+                prevLo.focus()
+                prevLo.setSelectionRange(cp,cp)
+            },0)
+        }
+        
+    }
+
     hi.oninput = (e) => {
-        let decoded = textToCharset(ed.innerText,hi.innerText,lo.innerText)
-        let res = meca(e.target,e,decoded[0],lastCursorPosition)
-        if(res>-1) {
-            let cs = charsetToText(hi.innerText,lo.innerText)
-            ed.innerText = cs[0]
-            status.innerText = cs[1]
-            setCursorPosition(lo,document.getSelection().anchorOffset-1)
+        let cp = getCaretPosition(hi)
+        if("0123456789ABCDEF".indexOf(e.data.toUpperCase())==-1) {
+            hi.value = hi.value.substring(0,cp-1).concat(hi.value.substring(cp))
+            hi.setSelectionRange(cp-1,cp-1)
+        } else {
+            hi.value = hi.value.substring(0,cp-1).concat(e.data.toUpperCase()).concat(hi.value.substring(cp+1))
+            let cs = charsetToText(hi.value,lo.value)
+            ed.value = cs[0]
+            status.value = cs[1]
+            lo.focus()
+            lo.setSelectionRange(cp-1,cp-1)
         }
     }
 
     hi.onfocus = (e) => {
         hi.style.color='#7B7'
-        setCursorPosition(hi,lastCursorPosition)
         focused = hi
     }
 
@@ -161,33 +133,40 @@ newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") =>
     }
 
     hi.onkeydown = (e) => {
+        if(e.key=='Delete') { e.preventDefault(); return }
+        if(e.key=='Backspace') { e.preventDefault(); return }
+        let cp = getCaretPosition(hi)
         if(e.key=='ArrowDown') {
-            e.stopPropagation()
-            setCursorPosition(lo,lastCursorPosition)
+            window.setTimeout(()=>{
+                lo.focus()
+                lo.setSelectionRange(cp,cp)
+            },0)
         }
-        /*
-        let action = ['ArrowLeft','ArrowRight'].findIndex(a=>a==e.key)
-        if(action!==-1) {
-            ([()=>lastCursorPosition--,()=>lastCursorPosition++][action])()
-            console.log(lastCursorPosition)
+        if(e.key=='ArrowUp') {
+            window.setTimeout(()=>{
+                ed.focus()
+                ed.setSelectionRange(cp,cp)
+            },0)
         }
-        */
     }
 
     lo.oninput = (e) => {
-        let decoded = textToCharset(ed.innerText,hi.innerText,lo.innerText)
-        let res = meca(e.target,e,decoded[1],lastCursorPosition)
-        if(res>-1) {
-            let cs = charsetToText(hi.innerText,lo.innerText)
-            ed.innerText = cs[0]
-            status.innerText = cs[1]
-            setCursorPosition(hi,document.getSelection().anchorOffset)
+        let cp = getCaretPosition(lo)
+        if("0123456789ABCDEF".indexOf(e.data.toUpperCase())==-1) {
+            lo.value = lo.value.substring(0,cp-1).concat(lo.value.substring(cp))
+            lo.setSelectionRange(cp-1,cp-1)
+        } else {
+            lo.value = lo.value.substring(0,cp-1).concat(e.data.toUpperCase()).concat(lo.value.substring(cp+1))
+            let cs = charsetToText(hi.value,lo.value)
+            ed.value = cs[0]
+            status.value = cs[1]
+            hi.focus()
+            hi.setSelectionRange(cp,cp)
         }
     }
 
     lo.onfocus = (e) => {
         lo.style.color='#7B7'
-        setCursorPosition(lo,lastCursorPosition)
         focused = lo
     }
 
@@ -196,6 +175,27 @@ newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") =>
         lastCursorPosition = document.getSelection().anchorOffset
         focused = undefined
     }
+
+    lo.onkeydown = (e) => {
+        if(e.key=='Delete') { e.preventDefault(); return }
+        if(e.key=='Backspace') { e.preventDefault(); return }
+        let cp = getCaretPosition(lo)
+        if(e.key=='ArrowUp') {
+            window.setTimeout(()=>{
+                hi.focus()
+                hi.setSelectionRange(cp,cp)
+            },0)
+        }
+        if(e.key=='ArrowDown') {
+            let nextEd = lo.parentElement.parentElement.nextElementSibling.querySelector('.ed')
+            if(nextEd) {
+                window.setTimeout(()=>{
+                    nextEd.focus()
+                    nextEd.setSelectionRange(cp,cp)
+                },0)
+            }
+        }
+    }    
 
     return {ed:ed,hi:hi,lo:lo,status}
 
@@ -239,8 +239,8 @@ extractBinaryBuffer = () => {
         let ed = all[e]
         let hitag = ed.nextElementSibling
         let lotag = hitag.nextElementSibling
-        let hi = hitag.innerText
-        let lo = lotag.innerText
+        let hi = hitag.value
+        let lo = lotag.value
         let long = hi.length
         for(var i=0;i<long;i++)
         codes.push(parseInt(hi.charAt(i)+lo.charAt(i),16))

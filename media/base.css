@@ -1,8 +1,15 @@
+.lineBody {
+    width: 100%;
+    padding-bottom: 3px;
+}
 .ed,.high,.low,.status {
-    background-color: #222222;
-    color: #DDDDDD;
-    font-family: monospace;
-    font-size: large;
+    background-color: #222222 !important;
+    color: #DDDDDD !important;
+    font-family: monospace !important;
+    font-size: large !important;
+    border: none !important;
+    width: 100% !important;
+    height: 1.1em;
 }   
 .ed {
     color: #DDD;
@@ -22,7 +29,7 @@
     margin-right: 3px;
 }
 .hideElement {
-    display: none;
+    display: none !important;
 }
 .basicButton {
     width: 12em;
