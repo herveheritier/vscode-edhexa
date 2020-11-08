@@ -123,25 +123,16 @@ class EdHexaPanel {
 			this._disposables
 		);
 
-		/*
+		// first reading
 
-		vscode.workspace.fs.readFile(this._fileUri).then((thenable:Uint8Array)=>{
-			this._panel.webview.postMessage({ command:'load',content:thenable, mode:this._mode})
-		},(error:any)=>{
-			// eslint-disable-next-line no-debugger
-			debugger
-		})
-
-		*/
-
-
-		//
+		this.read(0)
 
 	}
 
 	private read(offset:number) {
 		fs.read(this._fd,this._buffer,0,this._bufferSize,offset,(err,bytesRead,buffer) => {
-			this._panel.webview.postMessage({ command:'load',content:{ data:Array.from(<ArrayLike<unknown>>buffer), size:bytesRead }, mode:this._mode})	
+			if(err) vscode.window.showErrorMessage('erreur de lecture')
+			else this._panel.webview.postMessage({ command:'load',content:{ data:Array.from(<ArrayLike<unknown>>buffer), offset:offset, size:bytesRead }, mode:this._mode})	
 		})
 	}
 
@@ -182,12 +173,23 @@ class EdHexaPanel {
 		const stylesMainUri = webview.asWebviewUri(stylesPathMainPath);
 		const stylesBaseUri = webview.asWebviewUri(stylesPathBasePath);
 
-		/*const htmlPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'index.html');
-		const html = vscode.workspace.fs.readFile(htmlPath).then((e)=>vscode.window.showErrorMessage(`${e.length}`))*/
+		//const htmlPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'index.html');
 
 		// Use a nonce to only allow specific scripts to be run
 		const nonce = getNonce();
 
+		/*const html = fs.readFileSync(htmlPath.fsPath,'utf8')
+			.replace('${stylesResetUri}',stylesResetUri.toString())
+			.replace('${stylesMainUri}',stylesMainUri.toString())
+			.replace('${stylesBaseUri}',stylesBaseUri.toString())
+			.replace('${scriptUri}',scriptUri.toString())
+			.replace('${scriptEatUri}',scriptEatUri.toString())
+			.replace('${scriptBaseUri}',scriptBaseUri.toString())
+			.replace('${scriptUtilsUri}',scriptUtilsUri.toString())
+			.replace(/\$\{nonce\}/g,nonce)
+
+		return html */
+		
 		return `<html lang="en">
 			<head>
 				<meta charset="UTF-8">
@@ -234,6 +236,7 @@ class EdHexaPanel {
 				</div>
 				<div id="mainContent">
 				</div>
+				<div id="logme"></div>
 				<template id="line">
 					<div class="aline" style="display:flex;">
 						<div class="lineNumber">00000</div>
@@ -249,7 +252,7 @@ class EdHexaPanel {
 				<script nonce="${nonce}" src="${scriptUri}"></script>
 
 			</body>
-			</html>`;
+			</html>`
 	}
 }
 
