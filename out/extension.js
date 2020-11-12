@@ -23,9 +23,10 @@ class EdHexaPanel {
     }
     */
     constructor(panel, extensionUri, fileUri, mode) {
+        this._statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
         this._disposables = [];
-        this._bufferSize = 1024; //32760
-        this._buffer = new Uint8Array(this._bufferSize);
+        this._bufferSize = 4096; //32760
+        this._buffer = new Uint8Array(this._bufferSize + 1);
         this._panel = panel;
         this._extensionUri = extensionUri;
         this._fileUri = fileUri;
@@ -36,16 +37,19 @@ class EdHexaPanel {
         this._panel.webview.html = this._getHtmlForWebview(webview);
         // Listen for when the panel is disposed
         // This happens when the user closes the panel or when the panel is closed programatically
-        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+        this._panel.onDidDispose(() => {
+            this.dispose(), null, this._disposables;
+            this._statusBarItem.hide();
+        });
         // Handle messages from the webview
         this._panel.webview.onDidReceiveMessage(message => {
             switch (message.command) {
                 case 'alert':
                     vscode.window.showErrorMessage(message.text);
-                    return;
+                    break;
                 case 'info':
                     vscode.window.showInformationMessage(message.text);
-                    return;
+                    break;
                 case 'save':
                     // eslint-disable-next-line no-case-declarations
                     const res = Array.from(message.content).map((e) => { return e.charCodeAt(0); });
@@ -56,11 +60,19 @@ class EdHexaPanel {
                         // eslint-disable-next-line no-debugger
                         debugger;
                     });
-                    return;
+                    break;
                 case 'readBuffer':
-                    this.read(message.content.position);
-                /*fs.readSync(fd,buf,0,bufferSize,message.content.position)
-                this._panel.webview.postMessage({ command:'load',content:{ data:Array.from(buf) }, mode:this._mode})*/
+                    this.read(message.content.position, message.content.mode);
+                    break;
+                case 'refreshStatus':
+                    this._statusBarItem.text = message.value;
+                    break;
+                case 'getDefault':
+                    this._panel.webview.postMessage({
+                        command: 'default',
+                        content: vscode.workspace.getConfiguration().edhexa
+                    });
+                    break;
             }
         }, null, this._disposables);
         // first reading
@@ -73,6 +85,7 @@ class EdHexaPanel {
         // If we already have a panel, show it.
         if (EdHexaPanel.currentPanel) {
             EdHexaPanel.currentPanel._panel.reveal(column);
+            EdHexaPanel.currentPanel._statusBarItem.show();
             return;
         }
         // Otherwise, create a new panel.
@@ -84,13 +97,27 @@ class EdHexaPanel {
             retainContextWhenHidden: true
         });
         EdHexaPanel.currentPanel = new EdHexaPanel(panel, extensionUri, fileUri, mode);
+        // create status bar
+        EdHexaPanel.currentPanel._statusBarItem.text = 'Ed-Hexa';
+        EdHexaPanel.currentPanel._statusBarItem.show();
     }
-    read(offset) {
-        fs.read(this._fd, this._buffer, 0, this._bufferSize, offset, (err, bytesRead, buffer) => {
+    read(offset, mode = this._mode) {
+        fs.read(this._fd, this._buffer, 0, this._bufferSize + 1, offset, (err, bytesRead, buffer) => {
             if (err)
                 vscode.window.showErrorMessage('erreur de lecture');
-            else
-                this._panel.webview.postMessage({ command: 'load', content: { data: Array.from(buffer), offset: offset, size: bytesRead }, mode: this._mode });
+            else {
+                this._panel.webview.postMessage({
+                    command: 'load',
+                    content: {
+                        data: Array.from(buffer).slice(0, -1),
+                        offset: offset,
+                        size: bytesRead,
+                        eof: bytesRead < this._bufferSize
+                    },
+                    mode: mode,
+                    pageSize: this._bufferSize
+                });
+            }
         });
     }
     dispose() {
@@ -126,17 +153,6 @@ class EdHexaPanel {
         //const htmlPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'index.html');
         // Use a nonce to only allow specific scripts to be run
         const nonce = getNonce();
-        /*const html = fs.readFileSync(htmlPath.fsPath,'utf8')
-            .replace('${stylesResetUri}',stylesResetUri.toString())
-            .replace('${stylesMainUri}',stylesMainUri.toString())
-            .replace('${stylesBaseUri}',stylesBaseUri.toString())
-            .replace('${scriptUri}',scriptUri.toString())
-            .replace('${scriptEatUri}',scriptEatUri.toString())
-            .replace('${scriptBaseUri}',scriptBaseUri.toString())
-            .replace('${scriptUtilsUri}',scriptUtilsUri.toString())
-            .replace(/\$\{nonce\}/g,nonce)
-
-        return html */
         return `<html lang="en">
 			<head>
 				<meta charset="UTF-8">
@@ -177,7 +193,7 @@ class EdHexaPanel {
 						<option value="LF">LF</option>
 						<option value="CL">CR/LF</option>
 					</select>
-					<input id="length" type="number" min="1" max="32760" value="80" /><br/>
+					<input id="length" type="number" min="1" max="32760" value="${vscode.workspace.getConfiguration().edhexa.fileSize}" /><br/>
 					<button id="prev" class="miniButton">prev</button>
 					<button id="next" class="miniButton">next</button>
 				</div>

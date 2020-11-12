@@ -1,3 +1,9 @@
+:root {
+    --line-size: 80ch;
+}
+.aline {
+    scroll-snap-align: start end;
+}
 .lineBody {
     width: 100%;
     padding-bottom: 3px;
@@ -8,20 +14,26 @@
     font-family: monospace !important;
     font-size: large !important;
     border: none !important;
-    width: 100% !important;
+    width: var(--line-size) !important;
     height: 1.1em;
 }   
+.ed:focus, .high:focus, .low:focus {
+    color: #2D2 !important;
+}
 .ed {
-    color: #DDD;
-    white-space: pre;
+    color: #DDD !important;
+    white-space: pre !important;
 }         
 .high, .low {
-    color: #AAA;
-    user-select: none;
+    color: #AAA !important;
+    user-select: none !important;
 }
 .ed, .high, .low, .status {
     padding-left: 3px;
     padding-right: 3px;
+}
+.replace {
+    caret-color: red;
 }
 .lineNumber {
     border-right: 2px solid #555;
@@ -48,7 +60,7 @@
 #mainMenu {
     position: fixed;
     top: 0px;
-    background-color: #222;
+    background-color: rgba(2,2,2,0.5);
     width: 100%;
     padding: 0px;
     margin: 0px;

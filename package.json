@@ -43,6 +43,83 @@
 					"group": "edhexa"
 				}
 			]
+		},
+		"configuration": {
+			"type": "object",
+			"title": "Ed-Hexa",
+			"properties": {
+				"edhexa.charsetMode": {
+					"description": "Default charset",
+					"type": "string",
+					"enum": [
+						"ASCII",
+						"EBCDIC"
+					],
+					"default": "EBCDIC"
+				},
+				"edhexa.charMode": {
+					"description": "Default char mode",
+					"type": "string",
+					"enum": [
+						"BINARY",
+						"CHARSET",
+						"MIXTE"
+					],
+					"default": "BINARY"
+				},	
+				"edhexa.displayMode": {
+					"description": "Default display mode",
+					"type": "string",
+					"enum": [
+						"HEXA",
+						"CHAR"
+					],
+					"default": "CHAR"
+				},			
+				"edhexa.fileSize": {
+					"description": "Default file records size",
+					"default": 132,
+					"type": "integer"
+				},
+				"edhexa.format": {
+					"description": "Default file format",
+					"type": "string",
+					"enum": [
+						"F","FB","V","VB","CR","LF","CR+LF","LF+CR","NL"
+					],
+					"enumDescriptions": [
+						"z/OS Fixed format",
+						"z/OS Fixed Blocked format",
+						"z/OS Variable format",
+						"z/OS Variable Blocked format",
+						"CR (carriage return)",
+						"LF (line feed))",
+						"CR+LF (carriage return & line feed)",
+						"LF+CR (line feed & carraige return)",
+						"NL (EBCDIC new line character)"
+					],
+					"default": "FB"
+				},
+				"edhexa.insertMode": {
+					"description": "Default comportement for insert character in fixed file format",
+					"type":"string",
+					"enum": [
+						"LINE-LOOSE","PAGE-LOOSE","INSERT","LIMITED"
+					],
+					"enumDescriptions": [
+						"extra line characters are loosed",
+						"extra page characters are loosed",
+						"no loosed characters",
+						"insertion loose only insignificant extra line characters else insertion is not possible"
+					],
+					"default":"LIMITED"
+				},
+				"edhexa.insignificantCharacter": {
+					"description": "Default hexa value for insignificant character",
+					"type":"string",
+					"default": "00"
+				}
+			}
 		}
 	},
 	"scripts": {

@@ -12,6 +12,15 @@ var charsetMode = charsets[0]
 var charModes = ['BINARY','CHARSET','MIXTE']
 var charMode = charModes[0]
 
+var typeModes = ['INSERT','REPLACE']
+var typeMode = typeModes[0]
+
+var configuration = {
+    displayMode : displays[0],
+    charsetMode : charsets[0],
+    charMode : charModes[0],
+    typeMode : typeModes[0]
+}
 
 textToAscii = (text,hi,lo) => {
     let l = text.length
@@ -101,10 +110,10 @@ ebcdicToText = (high,low) => {
 }
 
 textToCharset = (text,high,low) => {
-    return ([textToAscii,textToEbcdic][charsets.findIndex((e)=>e==charsetMode)])(text,high,low)
+    return ([textToAscii,textToEbcdic][charsets.findIndex((e)=>e==configuration.charsetMode)])(text,high,low)
 }
 
 charsetToText = (high,low) => {
-    return ([asciiToText,ebcdicToText][charsets.findIndex((e)=>e==charsetMode)])(high,low)
+    return ([asciiToText,ebcdicToText][charsets.findIndex((e)=>e==configuration.charsetMode)])(high,low)
 }
 
