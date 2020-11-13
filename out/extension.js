@@ -23,9 +23,10 @@ class EdHexaPanel {
     }
     */
     constructor(panel, extensionUri, fileUri, mode) {
-        this._statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
+        this._statusBarItemCharMode = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
+        this._statusBarItemInsertMode = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
         this._disposables = [];
-        this._bufferSize = 4096; //32760
+        this._bufferSize = vscode.workspace.getConfiguration().edhexa.bufferSize;
         this._buffer = new Uint8Array(this._bufferSize + 1);
         this._panel = panel;
         this._extensionUri = extensionUri;
@@ -39,7 +40,8 @@ class EdHexaPanel {
         // This happens when the user closes the panel or when the panel is closed programatically
         this._panel.onDidDispose(() => {
             this.dispose(), null, this._disposables;
-            this._statusBarItem.hide();
+            this._statusBarItemCharMode.hide();
+            this._statusBarItemInsertMode.hide();
         });
         // Handle messages from the webview
         this._panel.webview.onDidReceiveMessage(message => {
@@ -57,26 +59,44 @@ class EdHexaPanel {
                         vscode.window.showInformationMessage('le fichier a été enregistré');
                     }, (error) => {
                         vscode.window.showErrorMessage('enregistrement en échec');
-                        // eslint-disable-next-line no-debugger
-                        debugger;
                     });
                     break;
                 case 'readBuffer':
-                    this.read(message.content.position, message.content.mode);
+                    this.readBuffer(message.content.position, message.content.mode);
                     break;
-                case 'refreshStatus':
-                    this._statusBarItem.text = message.value;
+                case 'refreshCharModeStatus':
+                    this._statusBarItemCharMode.text = message.value;
+                    break;
+                case 'refreshInsertModeStatus':
+                    this._statusBarItemInsertMode.text = message.value;
                     break;
                 case 'getDefault':
+                    // eslint-disable-next-line no-case-declarations
+                    const config = { ...vscode.workspace.getConfiguration().edhexa, ...({ charsetMode: mode }) };
                     this._panel.webview.postMessage({
                         command: 'default',
-                        content: vscode.workspace.getConfiguration().edhexa
+                        content: config
                     });
                     break;
+                case 'getReady':
+                    fs.readFile(this._fileUri.fsPath, (err, data) => {
+                        if (err)
+                            vscode.window.showErrorMessage('erreur de lecture');
+                        else {
+                            this._fileContent = data;
+                            this._panel.webview.postMessage({ command: 'ready' });
+                        }
+                    });
+                    break;
+                case 'getStats':
+                    fs.stat(this._fileUri.fsPath, (err, stats) => {
+                        this._panel.webview.postMessage({
+                            command: 'stats',
+                            content: stats
+                        });
+                    });
             }
         }, null, this._disposables);
-        // first reading
-        this.read(0);
     }
     static createOrShow(extensionUri, fileUri, mode) {
         const column = vscode.window.activeTextEditor
@@ -85,7 +105,8 @@ class EdHexaPanel {
         // If we already have a panel, show it.
         if (EdHexaPanel.currentPanel) {
             EdHexaPanel.currentPanel._panel.reveal(column);
-            EdHexaPanel.currentPanel._statusBarItem.show();
+            EdHexaPanel.currentPanel._statusBarItemCharMode.show();
+            EdHexaPanel.currentPanel._statusBarItemInsertMode.show();
             return;
         }
         // Otherwise, create a new panel.
@@ -98,8 +119,10 @@ class EdHexaPanel {
         });
         EdHexaPanel.currentPanel = new EdHexaPanel(panel, extensionUri, fileUri, mode);
         // create status bar
-        EdHexaPanel.currentPanel._statusBarItem.text = 'Ed-Hexa';
-        EdHexaPanel.currentPanel._statusBarItem.show();
+        EdHexaPanel.currentPanel._statusBarItemCharMode.text = 'Ed-Hexa';
+        EdHexaPanel.currentPanel._statusBarItemCharMode.show();
+        EdHexaPanel.currentPanel._statusBarItemInsertMode.text = vscode.workspace.getConfiguration().edhexa.insertMode;
+        EdHexaPanel.currentPanel._statusBarItemInsertMode.show();
     }
     read(offset, mode = this._mode) {
         fs.read(this._fd, this._buffer, 0, this._bufferSize + 1, offset, (err, bytesRead, buffer) => {
@@ -117,6 +140,33 @@ class EdHexaPanel {
                     mode: mode,
                     pageSize: this._bufferSize
                 });
+            }
+        });
+    }
+    readBuffer(offset, mode = this._mode) {
+        var _a;
+        const data = Array.from(((_a = this._fileContent) === null || _a === void 0 ? void 0 : _a.slice(offset, offset + this._bufferSize + 1)));
+        if (data == undefined)
+            vscode.window.showErrorMessage('erreur de lecture');
+        else
+            this._panel.webview.postMessage({
+                command: 'load',
+                content: {
+                    data: data,
+                    offset: offset,
+                    size: data.length,
+                    eof: data.length < this._bufferSize
+                },
+                mode: mode,
+                pageSize: this._bufferSize
+            });
+    }
+    readFile() {
+        fs.readFile(this._fileUri.fsPath, (err, data) => {
+            if (err)
+                vscode.window.showErrorMessage('erreur de lecture');
+            else {
+                this._fileContent = data;
             }
         });
     }
@@ -193,7 +243,7 @@ class EdHexaPanel {
 						<option value="LF">LF</option>
 						<option value="CL">CR/LF</option>
 					</select>
-					<input id="length" type="number" min="1" max="32760" value="${vscode.workspace.getConfiguration().edhexa.fileSize}" /><br/>
+					<input id="length" type="number" min="1" max="32760" value="${vscode.workspace.getConfiguration().edhexa.recordSize}" /><br/>
 					<button id="prev" class="miniButton">prev</button>
 					<button id="next" class="miniButton">next</button>
 				</div>

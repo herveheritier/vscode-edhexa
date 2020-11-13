@@ -5,7 +5,7 @@ const vscode = acquireVsCodeApi()
 
 load = (buffer,size) => {
     deleteAllLines()
-    let d=0, inc=parseInt(document.querySelector('#length').value)
+    let d=0, inc=configuration.recordSize //parseInt(document.querySelector('#length').value)
     let extract
     do {
         let f=d+inc
@@ -42,9 +42,18 @@ window.addEventListener('message', event => {
         }
         document.querySelector('#charset').innerText = configuration.charsetMode
         load(message.content.data,message.content.size)
-    } else if(message.command=='default') {
+    } else if(message.command=='ready') {
+        vscode.postMessage({ command:'getDefault' })
+    }
+    else if(message.command=='default') {
+        configuration = { ...configuration, ...message.content }
+        document.documentElement.style.setProperty('--line-size',`${configuration.recordSize+1}ch`)
+        document.querySelector('#charmode').innerText = configuration.charMode
+        document.querySelector('#charset').innerText = configuration.charsetMode
+        vscode.postMessage({ command:"refreshCharModeStatus", value: `${configuration.charMode} / ${configuration.charsetMode}` })       
+        readBuffer(0) 
+    } else if(message.command=='stats') {
         console.log(message.content)
-        configuration = { ...message.content, ...configuration }
     }
 })
 
@@ -76,6 +85,38 @@ addline = (number) => {
     return document.querySelectorAll('.aline')[document.querySelectorAll('.aline').length-1]
 }
 
+goEdPrev = (elt,pos) => {
+    if(configuration.displayMode=='HEXA') {
+        let prevLo = elt.parentElement.parentElement.previousElementSibling.querySelector('.low')
+        window.setTimeout(()=>{
+            prevLo.focus()
+            prevLo.setSelectionRange(pos,pos)
+        },0)
+    } else {
+        let prevEd = elt.parentElement.parentElement.previousElementSibling.querySelector('.ed')
+        window.setTimeout(()=>{
+            prevEd.focus()
+            prevEd.setSelectionRange(pos,pos)
+        },0)    
+    }
+}
+
+goEdNext = (elt,pos) => {
+    if(configuration.displayMode=='HEXA') {
+        let nextHi = elt.parentElement.querySelector('.high')
+        window.setTimeout(()=>{
+            nextHi.focus()
+            nextHi.setSelectionRange(pos,pos)
+        },0)
+    } else {
+        let nextEd = elt.parentElement.parentElement.nextElementSibling.querySelector('.ed')
+        window.setTimeout(()=>{
+            nextEd.focus()
+            nextEd.setSelectionRange(pos,pos)
+        },0)    
+    }        
+}
+
 newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") => {          
 
     var focused
@@ -88,6 +129,7 @@ newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") =>
     let status = lo.nextElementSibling
 
     line.querySelectorAll(".high,.low,.status").forEach((div) => doDisplayMode(div) )
+    line.querySelectorAll('.ed').forEach(e => configuration.typeMode=='REPLACE' ? e.classList.add('replace') : e.classList.remove('replace') )
 
     doCharMode(status)
 
@@ -95,25 +137,44 @@ newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") =>
     refresh(ed,hi,lo,status)
 
     ed.oninput = (e) => {
+        //
+        // attention, event dispatch after character insertion or suppression
+        //
         ed.style.color='#9F9'
+        //
+        let cp = selectionStart==selectionEnd ? selectionStart+1 : selectionStart+1
+        //
+        // REPLACE mode without character selection = replace the character following the caret
         //
         if(configuration.typeMode=='REPLACE' && e.inputType=="insertText" && selectionStart==selectionEnd) {
             ed.value = ed.value.substring(0,selectionStart+1) + ed.value.substring(selectionStart+2)
-        }
-        //
-        let ln = parseInt(document.querySelector('#length').value)
-        let l = ln - ed.value.length
-        if(l>0) {
-            ed.value = ed.value.concat("▪".repeat(l))
-            hi.value = hi.value.substring(0,selectionStart).concat(hi.value.substring(selectionEnd+(selectionStart==selectionEnd ?1:0),ed.value.length)).concat("0".repeat(l+1))
-            lo.value = lo.value.substring(0,selectionStart).concat(lo.value.substring(selectionEnd+(selectionStart==selectionEnd ?1:0),ed.value.length)).concat("0".repeat(l+1))
         } else {
-            ed.value = ed.value.substring(0,ln)
+            let ln = configuration.recordSize //parseInt(document.querySelector('#length').value)
+            let l = ln - ed.value.length
+            if(l>0) {
+                ed.value = ed.value.concat("▪".repeat(l))
+                hi.value = hi.value.substring(0,selectionStart).concat(hi.value.substring(selectionEnd+(selectionStart==selectionEnd ?1:0),ed.value.length)).concat("0".repeat(l+1))
+                lo.value = lo.value.substring(0,selectionStart).concat(lo.value.substring(selectionEnd+(selectionStart==selectionEnd ?1:0),ed.value.length)).concat("0".repeat(l+1))
+            } else {
+                if(configuration.insertMode=='LIMITED') {
+                    if(hi.value.endsWith(configuration.insignificantCharacter[0]) && lo.value.endsWith(configuration.insignificantCharacter[1])) {
+                        ed.value = ed.value.substring(0,ln)
+                    } else {
+                        ed.value = ed.value.substring(0,selectionStart).concat(ed.value.substring(selectionStart+1))
+                        cp--
+                    }
+                } else if(configuration.insertMode=='LINE-LOOSE') {
+                    ed.value = ed.value.substring(0,ln)
+                } else if(configuration.insertMode=='PAGE-LOOSE') {
+                    ed.value = ed.value.substring(0,ln)
+                } else if(configuration.insertMode=='INSERT') {
+                    ed.value = ed.value.substring(0,ln)
+                }
+            }
         }
         //
         refreshCharset(ed,hi,lo,status)
         //
-        let cp = selectionStart==selectionEnd ? selectionStart+1 : selectionStart+1
         if(selectionStart==selectionEnd) {
             if(e.inputType=="deleteContentForward") cp-=1
             else if(e.inputType=="deleteContentBackward") cp-=2
@@ -141,34 +202,22 @@ newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") =>
         selectionEnd = ed.selectionEnd
         //
         let cp = getCaretPosition(ed)
-        if(e.key=='ArrowDown') {
-            if(configuration.displayMode=='HEXA') {
-                window.setTimeout(()=>{
-                    hi.focus()
-                    hi.setSelectionRange(cp,cp)
-                },0)
+        if(e.key=='Tab') {
+            if(shift) {
+                // set the caret at the end of the previous line
+                goEdPrev(ed,999999)
             } else {
-                let nextEd = ed.parentElement.parentElement.nextElementSibling.querySelector('.ed')
-                window.setTimeout(()=>{
-                    nextEd.focus()
-                    nextEd.setSelectionRange(cp,cp)
-                },0)    
+                // set the caret at the begining of the next line
+                goEdNext(ed,0)
             }
         }
+        if(e.key=='ArrowDown') {
+            // set the caret at the same place of the next line
+            goEdNext(ed,cp)
+        }
         if(e.key=='ArrowUp') {
-            if(configuration.displayMode=='HEXA') {
-                let prevLo = ed.parentElement.parentElement.previousElementSibling.querySelector('.low')
-                window.setTimeout(()=>{
-                    prevLo.focus()
-                    prevLo.setSelectionRange(cp,cp)
-                },0)
-            } else {
-                let prevEd = ed.parentElement.parentElement.previousElementSibling.querySelector('.ed')
-                window.setTimeout(()=>{
-                    prevEd.focus()
-                    prevEd.setSelectionRange(cp,cp)
-                },0)    
-            }
+            // set the caret at the same place of the previous line
+            goEdPrev(ed,cp)
         }
         //
         if(e.key=='Insert') {
@@ -177,15 +226,11 @@ newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") =>
             configuration.typeMode = typeModes[i]
             document.querySelectorAll('.ed').forEach(e => e.classList.toggle('replace'))
         }
-        //
-        /*if(typeMode=='REPLACE' && e.key!='Delete' && e.key!='Backspace' && e.key.length==1) {
-            ed.value = ed.value.substring(0,selectionStart) + e.key + ed.value.substring(selectionStart+1)
-        }*/
     }
 
     hi.oninput = (e) => {
         let cp = selectionEnd+1
-        if(cp>parseInt(document.querySelector('#length').value) || "0123456789ABCDEF".indexOf(e.data.toUpperCase())==-1) {
+        if(cp>configuration.recordSize || "0123456789ABCDEF".indexOf(e.data.toUpperCase())==-1) {        // configuration.recordSize = parseInt(document.querySelector('#length').value)
             hi.value = hi.value.substring(0,cp-1).concat(hi.value.substring(cp))
             hi.setSelectionRange(cp-1,cp-1)
         } else {
@@ -223,6 +268,19 @@ newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") =>
         if(e.key=='Delete') { e.preventDefault(); return }
         if(e.key=='Backspace') { e.preventDefault(); return }
         let cp = getCaretPosition(hi)
+        if(e.key=='Tab') {
+            if(shift) {
+                window.setTimeout(()=>{
+                    ed.focus()
+                    ed.setSelectionRange(99999,99999)
+                },0)                
+            } else {
+                window.setTimeout(()=>{
+                    lo.focus()
+                    lo.setSelectionRange(0,0)
+                },0)                
+            }
+        }
         if(e.key=='ArrowDown') {
             window.setTimeout(()=>{
                 lo.focus()
@@ -239,7 +297,7 @@ newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") =>
 
     lo.oninput = (e) => {
         let cp = selectionEnd+1
-        if(cp>parseInt(document.querySelector('#length').value) || "0123456789ABCDEF".indexOf(e.data.toUpperCase())==-1) {
+        if(cp>configuration.recordSize || "0123456789ABCDEF".indexOf(e.data.toUpperCase())==-1) {       // configuration.recordSize = parseInt(document.querySelector('#length').value)
             lo.value = lo.value.substring(0,cp-1).concat(lo.value.substring(cp))
             lo.setSelectionRange(cp-1,cp-1)
         } else {
@@ -277,6 +335,22 @@ newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") =>
         if(e.key=='Delete') { e.preventDefault(); return }
         if(e.key=='Backspace') { e.preventDefault(); return }
         let cp = getCaretPosition(lo)
+        if(e.key=='Tab') {
+            if(shift) {
+                window.setTimeout(()=>{
+                    hi.focus()
+                    hi.setSelectionRange(99999,99999)
+                },0)                
+            } else {
+                let nextEd = lo.parentElement.parentElement.nextElementSibling.querySelector('.ed')
+                if(nextEd) {
+                    window.setTimeout(()=>{
+                        nextEd.focus()
+                        nextEd.setSelectionRange(0,0)
+                    },0)
+                }             
+            }
+        }
         if(e.key=='ArrowUp') {
             window.setTimeout(()=>{
                 hi.focus()
@@ -305,7 +379,7 @@ document.querySelector('#charset').onclick = (e) => {
     configuration.charsetMode = charsets[i]
     e.target.innerText = configuration.charsetMode
     //
-    vscode.postMessage({ command:"refreshStatus", value: `${configuration.charMode} / ${configuration.charsetMode}` })
+    vscode.postMessage({ command:"refreshCharModeStatus", value: `${configuration.charMode} / ${configuration.charsetMode}` })
     // update display
     let all = document.querySelectorAll('.ed')
     let len = all.length
@@ -372,7 +446,9 @@ document.querySelector('#split').onclick = (e) => {
 document.querySelector('#length').onchange = (e) => {
     load(extractBinaryBuffer()) 
     //
-    document.documentElement.style.setProperty('--line-size',`${parseInt(e.target.value)+1}ch`)
+    let recordSize = parseInt(e.target.value)
+    configuration.recordSize = recordSize
+    document.documentElement.style.setProperty('--line-size',`${recordSize+1}ch`)
 }
 
 
@@ -394,7 +470,7 @@ document.querySelector('#charmode').onclick = (e) => {
     configuration.charMode=charModes[i]
     e.target.innerText = configuration.charMode
     //
-    vscode.postMessage({ command:"refreshStatus", value: `${configuration.charMode} / ${configuration.charsetMode}` })
+    vscode.postMessage({ command:"refreshCharModeStatus", value: `${configuration.charMode} / ${configuration.charsetMode}` })
     //
     doCharModeAll()
 }
@@ -412,6 +488,18 @@ document.querySelector('#prev').onclick = (e) => {
     readBuffer(p>0 ? p : 0)    
 }
 
+//
+// detect shift key
+//
+
+window.onkeyup = (e) => {
+    if(e.key=="Shift") shift = false
+}
+
+window.onkeydown = (e) => {
+    if(e.key=='Shift') shift = true
+}
+
 /****************************************************
  *                       MAIN                       *
  ****************************************************/
@@ -423,11 +511,6 @@ var pageSize = 0
 var eof = false
 var selectionStart = 0
 var selectionEnd = 0
+var shift = false
 
-document.documentElement.style.setProperty('--line-size',`${parseInt(document.querySelector('#length').value)+1}ch`)
-
-document.querySelector('#charmode').innerText = configuration.charMode
-document.querySelector('#charset').innerText = configuration.charsetMode
-vscode.postMessage({ command:"refreshStatus", value: `${configuration.charMode} / ${configuration.charsetMode}` })
-
-vscode.postMessage({ command:'getDefault' })
+vscode.postMessage({ command:'getReady' })

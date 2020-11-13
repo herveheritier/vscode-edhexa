@@ -44,6 +44,27 @@
 				}
 			]
 		},
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "edhexa",
+					"title": "Ed-Hexa",
+					"icon": "media/grid.png"
+				}
+			]
+		},
+		"views": {
+			"edhexa":[
+				{
+					"id": "edhexa.action",
+					"name": "principale"
+				},
+				{
+					"id": "edhexa.params",
+					"name": "secondaire"
+				}
+			]
+		},
 		"configuration": {
 			"type": "object",
 			"title": "Ed-Hexa",
@@ -76,7 +97,7 @@
 					],
 					"default": "CHAR"
 				},			
-				"edhexa.fileSize": {
+				"edhexa.recordSize": {
 					"description": "Default file records size",
 					"default": 132,
 					"type": "integer"
@@ -118,6 +139,11 @@
 					"description": "Default hexa value for insignificant character",
 					"type":"string",
 					"default": "00"
+				},
+				"edhexa.bufferSize": {
+					"description": "Windowed buffer size",
+					"type":"integer",
+					"default":"4096"
 				}
 			}
 		}
