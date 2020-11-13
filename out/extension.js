@@ -95,6 +95,14 @@ class EdHexaPanel {
                             content: stats
                         });
                     });
+                    break;
+                case 'updateBuffer':
+                    // eslint-disable-next-line no-case-declarations
+                    let data = Array.from(this._fileContent);
+                    data = data.slice(0, message.pageOffset).concat(message.content).concat(data.slice(message.pageOffset + message.pageSize));
+                    this._fileContent = data;
+                    console.log(this._fileContent);
+                    break;
             }
         }, null, this._disposables);
     }
@@ -124,25 +132,6 @@ class EdHexaPanel {
         EdHexaPanel.currentPanel._statusBarItemInsertMode.text = vscode.workspace.getConfiguration().edhexa.insertMode;
         EdHexaPanel.currentPanel._statusBarItemInsertMode.show();
     }
-    read(offset, mode = this._mode) {
-        fs.read(this._fd, this._buffer, 0, this._bufferSize + 1, offset, (err, bytesRead, buffer) => {
-            if (err)
-                vscode.window.showErrorMessage('erreur de lecture');
-            else {
-                this._panel.webview.postMessage({
-                    command: 'load',
-                    content: {
-                        data: Array.from(buffer).slice(0, -1),
-                        offset: offset,
-                        size: bytesRead,
-                        eof: bytesRead < this._bufferSize
-                    },
-                    mode: mode,
-                    pageSize: this._bufferSize
-                });
-            }
-        });
-    }
     readBuffer(offset, mode = this._mode) {
         var _a;
         const data = Array.from(((_a = this._fileContent) === null || _a === void 0 ? void 0 : _a.slice(offset, offset + this._bufferSize + 1)));
@@ -160,15 +149,6 @@ class EdHexaPanel {
                 mode: mode,
                 pageSize: this._bufferSize
             });
-    }
-    readFile() {
-        fs.readFile(this._fileUri.fsPath, (err, data) => {
-            if (err)
-                vscode.window.showErrorMessage('erreur de lecture');
-            else {
-                this._fileContent = data;
-            }
-        });
     }
     dispose() {
         EdHexaPanel.currentPanel = undefined;

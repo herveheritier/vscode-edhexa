@@ -13,31 +13,35 @@ Open ASCII file
 Display character and hexa  
 Edit character and hexa  
 Append new record  
-Save file  
+Update and Save Little File  
+Choose record size
+Read Big File
+Update Extension Parameters
 
 ### in progress
 
-Choose record size
+Update and Save Big File
+Tree View
 
-### Les modes
-#### mode binaire
-Dans ce mode, seules les valeurs binaires (hexa) comptent.  
-On peut changer de charset à la volée, mais cela ne joue que sur les caractères affichés, pas sur le code hexa.  
-En édition de caractère, c'est le charset en cours qui détermine le code hexa.
-#### mode charset
-Dans ce mode, le charset est fixé à l'ouverture.  
-On peut changer de charset à la volée, les caractères ne changeront pas (si il existe dans le charset choisi), mais
- cela jouera sur le code hexa de chaque caractère affichable ; quant aux caractères non affichable dans le charset choisi
- ils conservent le même code hexa.
-#### mode mixte
-Dans ce mode, à chaque octet est associé un status qui peut être soit fixé à binaire, soit fixé à caractère.
-Si le status est binaire, le changement de charset ne change pas le code hexa (donc change le caractère affiché).
-Si le status est caractère, le changement de charset ne change pas le caractère affiché, mais change le code hexa.
-Si le caractère affiché n'existe pas dans le charset choisi, alors le code hexa n'est pas transformé.
-L'utilisateur doit pouvoir basculer le status de chaque octet.
-Pour ce mode, le status doit pouvoir être enregistré avec le fichier.
-On verra pour proposer un mode ligne (même répartition des status d'une ligne à l'autre)
- et un mode fichier (chaque octet du fichier à son status).
-#### mode complexe
-Dans ce mode hypothètique, chaque fichier est accopagné d'une description (grammaire?) qui va jouer sur
- sa composition (charset, status, ...)
+### Modes
+#### binary mode
+In this mode, only binary values (hexa) count.  
+You can change the charset on the fly, but this only affects the displayed characters, not the hexa code.  
+In character editing, the current charset determines the hexa code.
+#### charset mode
+In this mode, the charset is fixed when the file is opened.  
+You can change the charset on the fly, the characters will not change (if it exists in the chosen charset), but
+ it will play on the hex code of each displayable character; as for the not displayable characters in the chosen charset
+ they keep the same hexa code.
+#### mixed mode
+In this mode, each byte is associated with a status that can be set to either binary or character.
+If the status is binary, the charset change does not change the hex code (thus changes the displayed character).
+If the status is character, the charset change does not change the displayed character, but changes the hex code.
+If the displayed character does not exist in the chosen charset, then the hex code is not changed.
+The user must be able to toggle the status of each byte.
+For this mode, the status must be saved with the file.
+We will see to propose a line mode (same distribution of status from one line to another)
+ and a file mode (each byte of the file has its status).
+#### complex mode
+In this mortgage mode, each file is accompanied by a description (grammar?) which will play on
+ its composition (charset, status, ...)

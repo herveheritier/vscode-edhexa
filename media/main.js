@@ -26,36 +26,50 @@ load = (buffer,size) => {
     } while(extract.length>0)
 }    
 
-// Handle messages sent from the extension to the webview
+//
 
-window.addEventListener('message', event => {
-    let message = event.data
-    console.log(message.command)
-    if(message.command=='load') {
-        configuration.charsetMode=message.mode
-        pageOffset = message.content.offset
-        pageSize = message.pageSize
-        eof = message.content.eof
-        if(charsets.findIndex((e)=>e==configuration.charsetMode)<0) {
-            vscode.postMessage({ command:'alert', text: `encodage demandé invalide (${configuration.charsetMode})` })
-            configuration.charsetMode = charsets[0]
+updateBuffer = () => {
+    let cs = []
+    document.querySelectorAll('.lineBody').forEach((lb) => {
+        let hi = lb.querySelector('.high').value
+        let lo = lb.querySelector('.low').value
+        let ln = hi.length
+        for(let i=0;i<ln;i++) {
+            cs.push('0123456789ABCDEF'.indexOf(hi[i])*16+'0123456789ABCDEF'.indexOf(lo[i]))
         }
-        document.querySelector('#charset').innerText = configuration.charsetMode
-        load(message.content.data,message.content.size)
-    } else if(message.command=='ready') {
-        vscode.postMessage({ command:'getDefault' })
+    })
+    vscode.postMessage({
+        command:'updateBuffer',
+        content: cs,
+        size: cs.length,
+        pageOffset: pageOffset,
+        pageSize: pageSize
+    })
+}
+
+//
+
+loadMessageCustomer = (message) => {
+    configuration.charsetMode=message.mode
+    pageOffset = message.content.offset
+    pageSize = message.pageSize
+    eof = message.content.eof
+    if(charsets.findIndex((e)=>e==configuration.charsetMode)<0) {
+        vscode.postMessage({ command:'alert', text: `encodage demandé invalide (${configuration.charsetMode})` })
+        configuration.charsetMode = charsets[0]
     }
-    else if(message.command=='default') {
-        configuration = { ...configuration, ...message.content }
-        document.documentElement.style.setProperty('--line-size',`${configuration.recordSize+1}ch`)
-        document.querySelector('#charmode').innerText = configuration.charMode
-        document.querySelector('#charset').innerText = configuration.charsetMode
-        vscode.postMessage({ command:"refreshCharModeStatus", value: `${configuration.charMode} / ${configuration.charsetMode}` })       
-        readBuffer(0) 
-    } else if(message.command=='stats') {
-        console.log(message.content)
-    }
-})
+    document.querySelector('#charset').innerText = configuration.charsetMode
+    load(message.content.data,message.content.size-1)
+}
+
+defaultMessageCustomer = (message) => {
+    configuration = { ...configuration, ...message.content }
+    document.documentElement.style.setProperty('--line-size',`${configuration.recordSize+1}ch`)
+    document.querySelector('#charmode').innerText = configuration.charMode
+    document.querySelector('#charset').innerText = configuration.charsetMode
+    vscode.postMessage({ command:"refreshCharModeStatus", value: `${configuration.charMode} / ${configuration.charsetMode}` })       
+    readBuffer(0) 
+}
 
 refreshBinary = (ed,hi,lo,status) => {
     let decoded = charsetToText(hi.value,lo.value)
@@ -83,6 +97,12 @@ addline = (number) => {
     c.querySelector('.lineNumber').innerText=("00000"+number).slice(-5)
     document.querySelector('#mainContent').appendChild(c)
     return document.querySelectorAll('.aline')[document.querySelectorAll('.aline').length-1]
+}
+
+initLine = (ed,hi,lo,status) => {
+    hi.value = configuration.insignificantCharacter[0].repeat(configuration.recordSize)
+    lo.value = configuration.insignificantCharacter[1].repeat(configuration.recordSize)
+    refreshBinary(ed,hi,lo,status)
 }
 
 goEdPrev = (elt,pos) => {
@@ -133,7 +153,8 @@ newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") =>
 
     doCharMode(status)
 
-    ed.value = lineContent
+    initLine(ed,hi,lo,status)
+    ed.value = lineContent.concat(ed.value.substring(lineContent.length))
     refresh(ed,hi,lo,status)
 
     ed.oninput = (e) => {
@@ -148,6 +169,7 @@ newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") =>
         //
         if(configuration.typeMode=='REPLACE' && e.inputType=="insertText" && selectionStart==selectionEnd) {
             ed.value = ed.value.substring(0,selectionStart+1) + ed.value.substring(selectionStart+2)
+            ed.value = ed.value.substring(0,configuration.recordSize)
         } else {
             let ln = configuration.recordSize //parseInt(document.querySelector('#length').value)
             let l = ln - ed.value.length
@@ -203,7 +225,7 @@ newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") =>
         //
         let cp = getCaretPosition(ed)
         if(e.key=='Tab') {
-            if(shift) {
+            if(e.shiftKey) {
                 // set the caret at the end of the previous line
                 goEdPrev(ed,999999)
             } else {
@@ -269,7 +291,7 @@ newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") =>
         if(e.key=='Backspace') { e.preventDefault(); return }
         let cp = getCaretPosition(hi)
         if(e.key=='Tab') {
-            if(shift) {
+            if(e.shiftKey) {
                 window.setTimeout(()=>{
                     ed.focus()
                     ed.setSelectionRange(99999,99999)
@@ -336,7 +358,7 @@ newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") =>
         if(e.key=='Backspace') { e.preventDefault(); return }
         let cp = getCaretPosition(lo)
         if(e.key=='Tab') {
-            if(shift) {
+            if(e.shiftKey) {
                 window.setTimeout(()=>{
                     hi.focus()
                     hi.setSelectionRange(99999,99999)
@@ -372,25 +394,6 @@ newLine = (lineContent="La nuit tous les chats sont gris, les souris aussi.") =>
 
 }
 
-document.querySelector('#charset').onclick = (e) => {
-    // toogle charset
-    let i = charsets.findIndex((e)=>e==configuration.charsetMode)
-    i = (i+1) % charsets.length
-    configuration.charsetMode = charsets[i]
-    e.target.innerText = configuration.charsetMode
-    //
-    vscode.postMessage({ command:"refreshCharModeStatus", value: `${configuration.charMode} / ${configuration.charsetMode}` })
-    // update display
-    let all = document.querySelectorAll('.ed')
-    let len = all.length
-    for(let e=0;e<len;e++) {
-        let ed = all[e]
-        let hi = ed.nextElementSibling
-        let lo = hi.nextElementSibling
-        refresh(ed,hi,lo,status)            
-    }
-}
-
 incrementLineNumber = () => {
     lineNumber++
     return lineNumber
@@ -421,36 +424,10 @@ extractBinaryBuffer = () => {
     return new Uint8Array(codes)
 }
 
-document.querySelector('#saveFile').onclick = (e) => {
-    vscode.postMessage({ command:'save', content: String.fromCharCode.apply(null,extractBinaryBuffer())})   
-}
-
-document.querySelector('#newLine').onclick = (e) => {
-    newLine()
-}
-
 doDisplayMode = (div) => {
     ([  ()=>div.classList.remove('hideElement'),
         ()=>div.classList.add('hideElement')   ][displays.findIndex((e)=>e==configuration.displayMode)])()
 }
-
-document.querySelector('#split').onclick = (e) => {
-    // toogle display mode
-    let i = displays.findIndex((e)=>e==configuration.displayMode)
-    i = (i+1) % displays.length
-    configuration.displayMode = displays[i]
-    //
-    document.querySelectorAll(".high,.low,.status").forEach((div) => doDisplayMode(div) )
-}
-
-document.querySelector('#length').onchange = (e) => {
-    load(extractBinaryBuffer()) 
-    //
-    let recordSize = parseInt(e.target.value)
-    configuration.recordSize = recordSize
-    document.documentElement.style.setProperty('--line-size',`${recordSize+1}ch`)
-}
-
 
 doCharMode = (div) => {
     if(configuration.charMode=='BINARY' || configuration.charMode=='CHARSET') {
@@ -464,6 +441,56 @@ doCharModeAll = () => {
     document.querySelectorAll(".status").forEach((div)=> doCharMode(div))
 }
 
+readBuffer = (position=offset) => {
+    vscode.postMessage({ command:'readBuffer', content: { position:position, mode:configuration.charsetMode } } )  
+}
+
+document.querySelector('#charset').onclick = (e) => {
+    // toogle charset
+    let i = charsets.findIndex((e)=>e==configuration.charsetMode)
+    i = (i+1) % charsets.length
+    configuration.charsetMode = charsets[i]
+    e.target.innerText = configuration.charsetMode
+    //
+    vscode.postMessage({ command:"refreshCharModeStatus", value: `${configuration.charMode} / ${configuration.charsetMode}` })
+    // update display
+    let all = document.querySelectorAll('.ed')
+    let len = all.length
+    for(let e=0;e<len;e++) {
+        let ed = all[e]
+        let hi = ed.nextElementSibling
+        let lo = hi.nextElementSibling
+        refresh(ed,hi,lo,status)            
+    }
+}
+
+document.querySelector('#saveFile').onclick = (e) => {
+    vscode.postMessage({ command:'save', content: String.fromCharCode.apply(null,extractBinaryBuffer())})   
+}
+
+document.querySelector('#newLine').onclick = (e) => {
+    newLine()
+}
+
+document.querySelector('#split').onclick = (e) => {
+    // toogle display mode
+    let i = displays.findIndex((e)=>e==configuration.displayMode)
+    i = (i+1) % displays.length
+    configuration.displayMode = displays[i]
+    //
+    document.querySelectorAll(".high,.low,.status").forEach((div) => doDisplayMode(div) )
+}
+
+document.querySelector('#length').onchange = (e) => {
+    let recordSize = parseInt(e.target.value)
+    configuration.recordSize = recordSize
+    document.documentElement.style.setProperty('--line-size',`${recordSize+1}ch`)
+    //
+    load(extractBinaryBuffer()) 
+    //
+
+}
+
 document.querySelector('#charmode').onclick = (e) => {
     let i = charModes.findIndex((e)=>e==configuration.charMode)
     i=(i+1)%charModes.length
@@ -475,11 +502,12 @@ document.querySelector('#charmode').onclick = (e) => {
     doCharModeAll()
 }
 
-readBuffer = (position=offset) => {
-    vscode.postMessage({ command:'readBuffer', content: { position:position, mode:configuration.charsetMode } } )  
-}
+//
+// navigation buttons
+//
 
 document.querySelector('#next').onclick = (e) => {
+    updateBuffer()
     if(!eof) readBuffer(pageOffset + pageSize)    
 }
 
@@ -489,16 +517,27 @@ document.querySelector('#prev').onclick = (e) => {
 }
 
 //
-// detect shift key
+// Handle messages sent from the extension to the webview
 //
 
-window.onkeyup = (e) => {
-    if(e.key=="Shift") shift = false
+window.onmessage = (event) => {
+    let message = event.data
+    switch(message.command) {
+        case 'load':
+            loadMessageCustomer(message)
+            break
+        case 'default':
+            defaultMessageCustomer(message)
+            break
+        case 'stats':
+            console.log(message.content)
+            break
+        case 'ready':
+            vscode.postMessage({ command:'getDefault' })
+            break
+    }
 }
 
-window.onkeydown = (e) => {
-    if(e.key=='Shift') shift = true
-}
 
 /****************************************************
  *                       MAIN                       *
